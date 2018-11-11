@@ -20,7 +20,8 @@
   "author": "Craftsy and Sympoz Inc.",
   "contributors": [
     "Chandler Prall <chandler@craftsy.com>",
-    "Don Abrams <don.abrams@craftsy.com>"
+    "Don Abrams <don.abrams@craftsy.com>",
+    "Neil Poulin <neil.j.poulin@gmail.com>"
   ],
   "license": "MIT",
   "repository": "https://github.com/Craftsy/babel-plugin-encapsulate-jsx",
