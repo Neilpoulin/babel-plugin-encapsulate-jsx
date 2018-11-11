@@ -1,33 +1,35 @@
-const {
-  makeClassNameFromPath
-} = require("./utils");
+"use strict";
 
-const defaultIgnoredElements = ["React.Fragment", "Fragment"];
+var _require = require("./utils"),
+    makeClassNameFromPath = _require.makeClassNameFromPath;
+
+var defaultIgnoredElements = ['React.Fragment', 'Fragment'];
 
 function doesElementNameMatch(elementNameNode, elements) {
-  const elementIdentifierParts = [];
-  let currentNode = elementNameNode;
+  var elementIdentifierParts = [];
+  var currentNode = elementNameNode;
 
-  while (currentNode.type === "JSXMemberExpression") {
+  while (currentNode.type === 'JSXMemberExpression') {
     elementIdentifierParts.unshift(currentNode.property.name);
     currentNode = currentNode.object;
   }
 
   elementIdentifierParts.unshift(currentNode.name);
-  const elementName = elementIdentifierParts.join(".");
+  var elementName = elementIdentifierParts.join('.');
   return elements.indexOf(elementName) !== -1;
 }
 
-module.exports = function EncapsulateJsx({
-  types: t
-}) {
+module.exports = function EncapsulateJsx(_ref) {
+  var t = _ref.types;
   return {
     visitor: {
       Program: function transform(path, state) {
-        const fileComments = path.parent.comments;
+        var fileComments = path.parent.comments;
 
         if (fileComments && fileComments.length) {
-          if (fileComments.filter(comment => comment.value.indexOf("disable-encapsulation") !== -1).length > 0) {
+          if (fileComments.filter(function (comment) {
+            return comment.value.indexOf('disable-encapsulation') !== -1;
+          }).length > 0) {
             state.disableEncapsulation = true;
           }
         }
@@ -37,39 +39,43 @@ module.exports = function EncapsulateJsx({
           return;
         }
 
-        const ignoredElements = state.opts.ignoredElements || defaultIgnoredElements;
+        var ignoredElements = state.opts.ignoredElements || defaultIgnoredElements;
 
         if (doesElementNameMatch(path.node.name, ignoredElements)) {
           return;
         }
 
-        const className = makeClassNameFromPath(state.file.log.filename);
-        const classnameAttributes = path.node.attributes.filter(a => t.isJSXAttribute(a) && t.isJSXIdentifier(a.name, {
-          name: "className"
-        }));
+        var className = makeClassNameFromPath(state.file.opts.filename);
+        var classnameAttributes = path.node.attributes.filter(function (a) {
+          return t.isJSXAttribute(a) && t.isJSXIdentifier(a.name, {
+            name: 'className'
+          });
+        });
 
         if (!classnameAttributes.length) {
-          const node = t.jSXOpeningElement(path.node.name, path.node.attributes.concat([t.jSXAttribute(t.jSXIdentifier("className"), t.stringLiteral(className))]), path.node.selfClosing);
+          var node = t.jSXOpeningElement(path.node.name, path.node.attributes.concat([t.jSXAttribute(t.jSXIdentifier('className'), t.stringLiteral(className))]), path.node.selfClosing);
           node.encapsulatedAlready = true;
           path.replaceWith(node);
         } else {
-          classnameAttributes.forEach(attr => {
+          classnameAttributes.forEach(function (attr) {
             if (t.isStringLiteral(attr.value)) {
-              const node = t.jSXOpeningElement(path.node.name, path.node.attributes.map(curAttr => {
+              var _node = t.jSXOpeningElement(path.node.name, path.node.attributes.map(function (curAttr) {
                 if (attr !== curAttr) return curAttr;
-                return t.jSXAttribute(t.jSXIdentifier("className"), t.stringLiteral(`${attr.value.value} ${className}`));
+                return t.jSXAttribute(t.jSXIdentifier('className'), t.stringLiteral("".concat(attr.value.value, " ").concat(className)));
               }), path.node.selfClosing);
-              node.encapsulatedAlready = true;
-              path.replaceWith(node);
+
+              _node.encapsulatedAlready = true;
+              path.replaceWith(_node);
             } else if (t.isJSXExpressionContainer(attr.value)) {
-              const node = t.jSXOpeningElement(path.node.name, path.node.attributes.map(curAttr => {
+              var _node2 = t.jSXOpeningElement(path.node.name, path.node.attributes.map(function (curAttr) {
                 if (attr !== curAttr) return curAttr;
-                return t.jSXAttribute(t.jSXIdentifier("className"), t.jSXExpressionContainer(t.binaryExpression("+", attr.value.expression, t.stringLiteral(` ${className}`))));
+                return t.jSXAttribute(t.jSXIdentifier('className'), t.jSXExpressionContainer(t.binaryExpression('+', attr.value.expression, t.stringLiteral(" ".concat(className)))));
               }), path.node.selfClosing);
-              node.encapsulatedAlready = true;
-              path.replaceWith(node);
+
+              _node2.encapsulatedAlready = true;
+              path.replaceWith(_node2);
             } else {
-              throw new Error("Babel Plugin Encapsulate JSX: unknown attribute type");
+              throw new Error('Babel Plugin Encapsulate JSX: unknown attribute type');
             }
           });
         }
